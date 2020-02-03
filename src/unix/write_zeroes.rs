@@ -8,7 +8,7 @@
 
 use std::cmp::min;
 use std::fs::File;
-use std::io::{Error, Result, Seek, SeekFrom, Write};
+use std::io::{Result, Seek, SeekFrom, Write};
 
 use crate::fallocate::{fallocate, FallocateMode};
 
@@ -26,7 +26,6 @@ pub trait PunchHole {
 impl PunchHole for File {
     fn punch_hole(&mut self, offset: u64, length: u64) -> Result<()> {
         fallocate(self, FallocateMode::PunchHole, true, offset, length as u64)
-            .map_err(|e| Error::from_raw_os_error(e.errno()))
     }
 }
 

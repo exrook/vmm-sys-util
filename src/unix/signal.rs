@@ -124,7 +124,7 @@ pub fn validate_signal_num(num: c_int) -> errno::Result<()> {
     if (libc::SIGHUP <= num && num <= libc::SIGSYS) || (SIGRTMIN() <= num && num <= SIGRTMAX()) {
         Ok(())
     } else {
-        Err(errno::Error::new(EINVAL))
+        Err(errno::Error::from_raw_os_error(EINVAL))
     }
 }
 
@@ -160,7 +160,7 @@ pub fn register_signal_handler(num: c_int, handler: SignalHandler) -> errno::Res
     // SIGKILL and SIGSTOP.
     // [`sigaction`](http://man7.org/linux/man-pages/man2/sigaction.2.html).
     if libc::SIGKILL == num || libc::SIGSTOP == num {
-        return Err(errno::Error::new(EINVAL));
+        return Err(errno::Error::from_raw_os_error(EINVAL));
     }
 
     // Safe, because this is a POD struct.
@@ -287,12 +287,12 @@ pub fn block_signal(num: c_int) -> SignalResult<()> {
         let mut old_sigset: sigset_t = mem::zeroed();
         let ret = pthread_sigmask(SIG_BLOCK, &sigset, &mut old_sigset as *mut sigset_t);
         if ret < 0 {
-            return Err(Error::BlockSignal(errno::Error::last()));
+            return Err(Error::BlockSignal(errno::Error::last_os_error()));
         }
         // Check if the given signal is already blocked.
         let ret = sigismember(&old_sigset, num);
         if ret < 0 {
-            return Err(Error::CompareBlockedSignals(errno::Error::last()));
+            return Err(Error::CompareBlockedSignals(errno::Error::last_os_error()));
         } else if ret > 0 {
             return Err(Error::SignalAlreadyBlocked(num));
         }
@@ -322,7 +322,7 @@ pub fn unblock_signal(num: c_int) -> SignalResult<()> {
     // Safe - return value is checked.
     let ret = unsafe { pthread_sigmask(SIG_UNBLOCK, &sigset, null_mut()) };
     if ret < 0 {
-        return Err(Error::UnblockSignal(errno::Error::last()));
+        return Err(Error::UnblockSignal(errno::Error::last_os_error()));
     }
     Ok(())
 }
@@ -372,11 +372,11 @@ pub fn clear_signal(num: c_int) -> SignalResult<()> {
             // is not pending, the call will fail with EAGAIN or EINTR.
             let ret = sigtimedwait(&sigset, &mut siginfo, &ts);
             if ret < 0 {
-                let e = errno::Error::last();
-                match e.errno() {
+                let e = errno::Error::last_os_error();
+                match e.raw_os_error().unwrap() {
                     EAGAIN | EINTR => {}
                     _ => {
-                        return Err(Error::ClearWaitPending(errno::Error::last()));
+                        return Err(Error::ClearWaitPending(errno::Error::last_os_error()));
                     }
                 }
             }
@@ -386,12 +386,12 @@ pub fn clear_signal(num: c_int) -> SignalResult<()> {
             // See if more instances of the signal are pending.
             let ret = sigpending(&mut chkset);
             if ret < 0 {
-                return Err(Error::ClearGetPending(errno::Error::last()));
+                return Err(Error::ClearGetPending(errno::Error::last_os_error()));
             }
 
             let ret = sigismember(&chkset, num);
             if ret < 0 {
-                return Err(Error::ClearCheckPending(errno::Error::last()));
+                return Err(Error::ClearCheckPending(errno::Error::last_os_error()));
             }
 
             // This is do-while loop condition.

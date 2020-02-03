@@ -191,7 +191,7 @@ fn raw_sendmsg<D: IntoIovec>(fd: RawFd, out_data: &[D], out_fds: &[RawFd]) -> Re
     let write_count = unsafe { sendmsg(fd, &msg, MSG_NOSIGNAL) };
 
     if write_count == -1 {
-        Err(Error::last())
+        Err(Error::last_os_error())
     } else {
         Ok(write_count as usize)
     }
@@ -212,7 +212,7 @@ fn raw_recvmsg(fd: RawFd, iovecs: &mut [iovec], in_fds: &mut [RawFd]) -> Result<
     let total_read = unsafe { recvmsg(fd, &mut msg, 0) };
 
     if total_read == -1 {
-        return Err(Error::last());
+        return Err(Error::last_os_error());
     }
 
     if total_read == 0 && (msg.msg_controllen as usize) < size_of::<cmsghdr>() {

@@ -32,7 +32,7 @@ macro_rules! handle_eintr_errno {
         let mut res;
         loop {
             res = $x;
-            if res != -1 || Error::last() != Error::new(EINTR) {
+            if res != -1 || Error::last_os_error().raw_os_error() != Some(EINTR) {
                 break;
             }
         }

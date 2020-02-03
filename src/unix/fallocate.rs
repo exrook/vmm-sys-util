@@ -62,13 +62,13 @@ pub fn fallocate(
     len: u64,
 ) -> Result<()> {
     let offset = if offset > libc::off64_t::max_value() as u64 {
-        return Err(Error::new(libc::EINVAL));
+        return Err(Error::from_raw_os_error(libc::EINVAL));
     } else {
         offset as libc::off64_t
     };
 
     let len = if len > libc::off64_t::max_value() as u64 {
-        return Err(Error::new(libc::EINVAL));
+        return Err(Error::from_raw_os_error(libc::EINVAL));
     } else {
         len as libc::off64_t
     };
